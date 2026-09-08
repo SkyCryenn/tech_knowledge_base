@@ -73,6 +73,10 @@ textarea:focus-visible, button:focus-visible {
 
 #status { margin-bottom: 0; }
 #status:empty { margin: 0; }
+button:disabled { background: #64748b; cursor: wait; }
+#status.error { color: #b91c1c; }
+#answer-section { margin-top: 24px; }
+#answer { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 @media (max-width: 480px) {
   main { margin: 32px auto; padding: 0 16px; }
