@@ -4,7 +4,15 @@ const status = document.querySelector("#status");
 const submitButton = form.querySelector("button");
 const answerSection = document.querySelector("#answer-section");
 const answer = document.querySelector("#answer");
+const modelSelect = document.querySelector("#model");
+const currentModel = document.querySelector("#current-model");
+const answerModel = document.querySelector("#answer-model");
+const elapsed = document.querySelector("#elapsed");
 let isLoading = false;
+
+modelSelect.addEventListener("change", () => {
+  currentModel.textContent = `目前選擇的模型：${modelSelect.value || "gemma3:latest"}`;
+});
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -17,6 +25,14 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
+  const model = modelSelect.value || "gemma3:latest";
+  const startedAt = performance.now();
+  const updateElapsed = () => {
+    elapsed.textContent = `處理時間：${((performance.now() - startedAt) / 1000).toFixed(1)} 秒`;
+  };
+  updateElapsed();
+  const elapsedTimer = setInterval(updateElapsed, 100);
+  modelSelect.disabled = true;
   isLoading = true;
   submitButton.disabled = true;
   questionInput.disabled = true;
@@ -33,7 +49,7 @@ form.addEventListener("submit", async (event) => {
     const response = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, model }),
       signal: controller.signal,
     });
     let data;
@@ -51,6 +67,7 @@ form.addEventListener("submit", async (event) => {
       throw new Error("未收到有效回答，請重試。");
     }
     answer.textContent = data.answer;
+    answerModel.textContent = `回答使用的模型：${data.model}`;
     answerSection.hidden = false;
     status.textContent = "回答完成。";
   } catch (error) {
@@ -64,6 +81,9 @@ form.addEventListener("submit", async (event) => {
     }
   } finally {
     clearTimeout(timeout);
+    clearInterval(elapsedTimer);
+    updateElapsed();
+    modelSelect.disabled = false;
     isLoading = false;
     submitButton.disabled = false;
     questionInput.disabled = false;

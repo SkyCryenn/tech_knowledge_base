@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -13,10 +12,10 @@ from pydantic import BaseModel, Field
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:latest")
+DEFAULT_MODEL = "gemma3:latest"
 OLLAMA_TIMEOUT = 120
 
-app = FastAPI(title="Tech Knowledge Base", version="0.2.0")
+app = FastAPI(title="Tech Knowledge Base", version="0.2.1")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -27,11 +26,12 @@ def homepage():
 
 class QuestionRequest(BaseModel):
     question: str = Field(min_length=1, max_length=10000)
+    model: str | None = Field(default=None, max_length=200)
 
 
-def generate_answer(question: str) -> str:
+def generate_answer(question: str, model: str = DEFAULT_MODEL) -> str:
     payload = {
-        "model": OLLAMA_MODEL,
+        "model": model,
         "prompt": question,
         "system": "請使用繁體中文回答使用者的問題。",
         "stream": False,
@@ -48,8 +48,8 @@ def generate_answer(question: str) -> str:
     except HTTPError as error:
         if error.code == 404:
             message = (
-                f"找不到模型 {OLLAMA_MODEL}。請先執行 ollama pull {OLLAMA_MODEL}，"
-                "或將 OLLAMA_MODEL 設為已安裝的模型後重啟 FastAPI。"
+                f"找不到模型 {model}。請先執行 ollama pull {model}，"
+                "或在下拉選單選擇已安裝的模型後重試。"
             )
         else:
             message = "Ollama 暫時無法產生回答，模型可能無法載入或記憶體不足。請檢查 Ollama 後重試。"
@@ -84,4 +84,5 @@ def ask_question(body: QuestionRequest):
     if not question:
         raise HTTPException(status_code=400, detail="請先輸入問題。")
     # 同步路由由 FastAPI 的執行緒池處理，避免等待 Ollama 時阻塞事件迴圈。
-    return {"answer": generate_answer(question)}
+    model = (body.model or "").strip() or DEFAULT_MODEL
+    return {"answer": generate_answer(question, model), "model": model}

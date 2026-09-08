@@ -11,17 +11,37 @@ import main
 
 
 class AskQuestionTests(unittest.TestCase):
+    def test_model_is_per_request_and_defaults_when_empty(self):
+        models = ["gemma4:latest", "qwen3:4b", "gemma3:latest", None, "", "   "]
+        for model in models:
+            with self.subTest(model=model):
+                response = io.BytesIO(b'{"response": "ok"}')
+                with patch("main.urlopen", return_value=response) as open_request:
+                    result = main.ask_question(main.QuestionRequest(question="test", model=model))
+                expected = (model or "").strip() or "gemma3:latest"
+                self.assertEqual(json.loads(open_request.call_args.args[0].data)["model"], expected)
+                self.assertEqual(result["model"], expected)
+                self.assertEqual(main.DEFAULT_MODEL, "gemma3:latest")
+
+    def test_missing_model_error_names_requested_model(self):
+        error = HTTPError(main.OLLAMA_URL, 404, "missing", {}, None)
+        with patch("main.urlopen", side_effect=error):
+            with self.assertRaises(HTTPException) as caught:
+                main.ask_question(main.QuestionRequest(question="test", model="missing-model"))
+        self.assertIn("missing-model", caught.exception.detail)
+        self.assertIn("下拉選單", caught.exception.detail)
+
     def test_success_sends_prompt_and_returns_answer(self):
         response = io.BytesIO(json.dumps({"response": "  測試回答  "}).encode())
         with patch("main.urlopen", return_value=response) as open_request:
             result = main.ask_question(main.QuestionRequest(question="  測試問題  "))
-        self.assertEqual(result, {"answer": "測試回答"})
+        self.assertEqual(result, {"answer": "測試回答", "model": "gemma3:latest"})
         request = open_request.call_args.args[0]
         payload = json.loads(request.data)
         self.assertEqual(request.full_url, "http://127.0.0.1:11434/api/generate")
         self.assertEqual(request.method, "POST")
         self.assertEqual(payload["prompt"], "測試問題")
-        self.assertEqual(payload["model"], main.OLLAMA_MODEL)
+        self.assertEqual(payload["model"], main.DEFAULT_MODEL)
         self.assertIs(payload["stream"], False)
         self.assertEqual(open_request.call_args.kwargs["timeout"], 120)
 

@@ -1,6 +1,6 @@
 # Tech Knowledge Base
 
-個人技術知識庫，目前實作至 **v0.2 — Ollama Integration**。
+個人技術知識庫，目前實作至 **v0.2.1 — Model UX Improvements**。
 
 ## 目前功能與流程
 
@@ -8,7 +8,9 @@
 
 - Ollama endpoint：`POST http://127.0.0.1:11434/api/generate`。
 - 傳送 `model`、`prompt`、繁體中文 system 提示與 `stream: false`，收到完整回答後顯示。
-- 預設模型為本機已安裝的 `gemma3:latest`，可用 `OLLAMA_MODEL` 環境變數設定單一模型。
+- 下拉選單提供 `gemma3:latest`、`gemma4:latest`、`qwen3:4b`，清楚顯示目前選擇與回答使用的模型。
+- 每次請求傳送 `question` 與 `model`；未傳、null、空字串或空白模型名稱皆使用 `gemma3:latest`。
+- 成功與錯誤都顯示從送出至回應處理完成的秒數（包含網路與模型等待，非 Ollama 純推論時間）。
 - 送出時顯示等待提示並停用表單，完成或失敗後恢復操作。
 - 處理 Ollama 未啟動、連線中斷、模型不存在、模型執行失敗、逾時及無效回應。
 - 回答以純文字顯示，保留換行，不將模型輸出當成 HTML 執行。
@@ -62,13 +64,8 @@ source .venv/bin/activate
 python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-若要改用另一個已安裝的模型，在啟動 FastAPI 前執行，例如：
-
-```sh
-export OLLAMA_MODEL=gemma4:latest
-```
-
-設定變更後需要重啟 FastAPI。`unset OLLAMA_MODEL` 可恢復預設值。
+在網頁下拉選單切換模型即可，不需要重啟 FastAPI。
+本版改為每次請求選擇模型，不讀取或修改 `OLLAMA_MODEL` 環境變數。
 
 ### 3. 開啟網頁
 
@@ -86,7 +83,7 @@ export OLLAMA_MODEL=gemma4:latest
 ## 錯誤排查
 
 - 無法連線至 Ollama：確認 App 已開啟，或 `ollama serve` 正在運行。
-- 找不到模型：用 `ollama list` 確認名稱，下載指定模型或修改 `OLLAMA_MODEL` 後重啟。
+- 找不到模型：用 `ollama list` 確認名稱，下載指定模型或在網頁切換至已安裝的模型。
 - 模型無法產生回答：檢查 Ollama 的錯誤紀錄與可用記憶體，必要時改用較小模型。
 - 回答逾時：縮短問題或改用較小模型後重試。
 - 無法連線至網頁後端：重新啟動 FastAPI。
@@ -105,7 +102,7 @@ tests/test_api.py       後端整合邏輯與錯誤處理測試
 
 只有 `static/` 提供靜態檔案，`knowledge/` 不會公開或讀取。
 
-## 測試與 v0.2 驗收
+## 測試與 v0.2.1 驗收
 
 不需要啟動 Ollama 即可執行模擬回應的後端測試：
 
@@ -121,3 +118,19 @@ tests/test_api.py       後端整合邏輯與錯誤處理測試
 3. 回答出現在瀏覽器。
 
 API 另會拒絕缺少問題、非字串或超過 10,000 字元的問題。
+
+### 三個模型的手動測試
+
+依序選擇 `gemma3:latest`、`gemma4:latest`、`qwen3:4b`，每次輸入：
+「請用繁體中文一句話說明 Python 的 list 和 tuple 的差別。」
+
+每個模型都確認：
+
+1. 目前模型名稱隨下拉選單更新。
+2. 送出後顯示 loading，模型與問題欄位暫時停用。
+3. 回答完成後顯示該次模型名稱、回答與「處理時間：X.X 秒」。
+4. 切換下一個模型時，上一則回答仍保留原本模型標記；新請求會清除舊回答與計時。
+5. FastAPI 停止後再次送出，應顯示連線錯誤及本次耗時，表單恢復可操作。
+
+若模型尚未安裝，分別執行 `ollama pull gemma3:latest`、
+`ollama pull gemma4:latest` 或 `ollama pull qwen3:4b`。
