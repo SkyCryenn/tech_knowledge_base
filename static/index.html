@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tech Knowledge Base</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="version">v0.1 · Project Foundation</p>
+        <h1>Tech Knowledge Base</h1>
+        <p>個人技術知識庫，從一個問題開始。</p>
+      </header>
+      <section aria-labelledby="question-heading">
+        <h2 id="question-heading">你想了解什麼？</h2>
+        <p id="question-help">目前提供問題輸入介面，尚未啟用 AI 回答或筆記搜尋。</p>
+        <form id="question-form">
+          <label for="question">你的問題</label>
+          <textarea id="question" name="question" rows="5" required
+            aria-describedby="question-help"
+            placeholder="例如：Python 的 list 和 tuple 有什麼差別？"></textarea>
+          <button type="submit">送出問題</button>
+        </form>
+        <p id="status" role="status" aria-live="polite"></p>
+        <noscript>請啟用 JavaScript 以使用送出提示；目前版本尚未提供回答功能。</noscript>
+      </section>
+    </main>
+  </body>
+</html>
