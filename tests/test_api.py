@@ -11,6 +11,11 @@ import main
 
 
 class AskQuestionTests(unittest.TestCase):
+    def setUp(self):
+        search = patch("main.find_context", return_value="")
+        search.start()
+        self.addCleanup(search.stop)
+
     def test_model_is_per_request_and_defaults_when_empty(self):
         models = ["gemma4:latest", "qwen3:4b", "gemma3:latest", None, "", "   "]
         for model in models:
