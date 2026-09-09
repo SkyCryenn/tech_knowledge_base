@@ -7,6 +7,7 @@ const answer = document.querySelector("#answer");
 const modelSelect = document.querySelector("#model");
 const currentModel = document.querySelector("#current-model");
 const answerModel = document.querySelector("#answer-model");
+const answerSources = document.querySelector("#answer-sources");
 const elapsed = document.querySelector("#elapsed");
 let isLoading = false;
 
@@ -42,6 +43,7 @@ form.addEventListener("submit", async (event) => {
   status.classList.remove("error");
   answerSection.hidden = true;
   answer.textContent = "";
+  answerSources.textContent = "";
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 150000);
@@ -68,6 +70,12 @@ form.addEventListener("submit", async (event) => {
     }
     answer.textContent = data.answer;
     answerModel.textContent = `回答使用的模型：${data.model}`;
+    const sources = Array.isArray(data.sources) ? [...new Set(data.sources)] : [];
+    for (const source of sources.length ? sources : ["無本地筆記"]) {
+      const item = document.createElement("li");
+      item.textContent = source;
+      answerSources.appendChild(item);
+    }
     answerSection.hidden = false;
     status.textContent = "回答完成。";
   } catch (error) {

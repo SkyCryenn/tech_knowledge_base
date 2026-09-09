@@ -16,8 +16,17 @@ OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 DEFAULT_MODEL = "gemma3:latest"
 OLLAMA_TIMEOUT = 120
 
-app = FastAPI(title="Tech Knowledge Base", version="0.3.0")
+app = FastAPI(title="Tech Knowledge Base", version="0.4.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.middleware("http")
+async def disable_page_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        # 本地開發時避免新版 HTML 搭配瀏覽器快取中的舊版 JS/CSS。
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/", response_class=FileResponse)
@@ -93,5 +102,10 @@ def ask_question(body: QuestionRequest):
         raise HTTPException(status_code=400, detail="請先輸入問題。")
     # 同步路由由 FastAPI 的執行緒池處理，避免等待 Ollama 時阻塞事件迴圈。
     model = (body.model or "").strip() or DEFAULT_MODEL
-    context = find_context(question)
-    return {"answer": generate_answer(question, model, context), "model": model}
+    chunks = find_context(question, include_sources=True)
+    context = "\n\n---\n\n".join(chunk["content"] for chunk in chunks)
+    sources = []
+    for chunk in chunks:
+        if chunk["source"] not in sources:
+            sources.append(chunk["source"])
+    return {"answer": generate_answer(question, model, context), "model": model, "sources": sources}

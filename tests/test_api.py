@@ -12,7 +12,7 @@ import main
 
 class AskQuestionTests(unittest.TestCase):
     def setUp(self):
-        search = patch("main.find_context", return_value="")
+        search = patch("main.find_context", return_value=[])
         search.start()
         self.addCleanup(search.stop)
 
@@ -40,7 +40,7 @@ class AskQuestionTests(unittest.TestCase):
         response = io.BytesIO(json.dumps({"response": "  測試回答  "}).encode())
         with patch("main.urlopen", return_value=response) as open_request:
             result = main.ask_question(main.QuestionRequest(question="  測試問題  "))
-        self.assertEqual(result, {"answer": "測試回答", "model": "gemma3:latest"})
+        self.assertEqual(result, {"answer": "測試回答", "model": "gemma3:latest", "sources": []})
         request = open_request.call_args.args[0]
         payload = json.loads(request.data)
         self.assertEqual(request.full_url, "http://127.0.0.1:11434/api/generate")

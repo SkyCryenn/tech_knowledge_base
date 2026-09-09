@@ -19,10 +19,16 @@ def search_terms(text: str) -> set[str]:
     return terms - STOP_WORDS
 
 
-def find_context(question: str, directory: Path = KNOWLEDGE_DIR) -> str:
+def find_context(
+    question: str,
+    directory: Path = KNOWLEDGE_DIR,
+    *,
+    include_sources: bool = False,
+) -> str | list[dict[str, str]]:
+    """預設回傳 context 文字；include_sources=True 時回傳各段內容與來源。"""
     terms = search_terms(question)
     if not terms or not directory.is_dir():
-        return ""
+        return [] if include_sources else ""
 
     ranked_chunks = []
     for path in sorted(directory.rglob("*")):
@@ -41,7 +47,13 @@ def find_context(question: str, directory: Path = KNOWLEDGE_DIR) -> str:
                 chunk = paragraph[start:start + CHUNK_SIZE].strip()
                 score = len(terms & search_terms(chunk))
                 if score:
-                    ranked_chunks.append((score, chunk))
+                    ranked_chunks.append((score, {
+                        "content": chunk,
+                        "source": path.relative_to(directory).as_posix(),
+                    }))
 
     ranked_chunks.sort(key=lambda item: item[0], reverse=True)
-    return "\n\n---\n\n".join(chunk for _, chunk in ranked_chunks[:MAX_CHUNKS])
+    chunks = [chunk for _, chunk in ranked_chunks[:MAX_CHUNKS]]
+    if include_sources:
+        return chunks
+    return "\n\n---\n\n".join(chunk["content"] for chunk in chunks)

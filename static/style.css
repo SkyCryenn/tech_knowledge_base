@@ -93,5 +93,18 @@ select {
   font: inherit;
 }
 select:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
-#current-model, #answer-model, #elapsed { color: #475569; font-size: 0.9rem; }
+#current-model, #answer-model, #answer-sources, #elapsed { color: #475569; font-size: 0.9rem; }
+.sources-block {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #dbe2e8;
+}
+.sources-block h3 { margin: 0 0 8px; font-size: 1rem; }
+#answer-sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+#answer-sources li + li { margin-top: 6px; }
 #elapsed:empty { margin: 0; }

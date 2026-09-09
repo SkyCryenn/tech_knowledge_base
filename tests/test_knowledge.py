@@ -41,21 +41,34 @@ class KnowledgeTests(unittest.TestCase):
         self.assertIn("Python", context)
         self.assertLessEqual(len(context), CHUNK_SIZE * MAX_CHUNKS + 7 * (MAX_CHUNKS - 1))
 
-    def test_reference_reaches_ollama_without_source_fields(self):
+    def test_reference_reaches_ollama_and_sources_reach_api(self):
         (self.directory / "note.md").write_text("Maple 使用連接埠 8765。", encoding="utf-8")
         for question, expected in [("Maple 的連接埠？", "8765"), ("DNS 是什麼？", None)]:
             with self.subTest(question=question):
-                with patch("main.find_context", side_effect=lambda q: find_context(q, self.directory)):
+                with patch("main.find_context", side_effect=lambda q, **kwargs: find_context(q, self.directory, **kwargs)):
                     with patch("main.urlopen", return_value=io.BytesIO(b'{"response":"ok"}')) as request:
                         result = main.ask_question(main.QuestionRequest(question=question, model="qwen3:4b"))
                 payload = json.loads(request.call_args.args[0].data)
                 self.assertEqual(payload["model"], "qwen3:4b")
-                self.assertEqual(set(result), {"answer", "model"})
+                self.assertEqual(set(result), {"answer", "model", "sources"})
+                self.assertEqual(result["sources"], ["note.md"] if expected else [])
                 if expected:
                     self.assertIn(expected, payload["prompt"])
                     self.assertIn(question, payload["prompt"])
                 else:
                     self.assertEqual(payload["prompt"], question)
+
+    def test_sources_are_unique_and_only_from_selected_chunks(self):
+        (self.directory / "a.md").write_text("Maple alpha beta\n\nMaple alpha", encoding="utf-8")
+        nested = self.directory / "nested"
+        nested.mkdir()
+        (nested / "a.md").write_text("Maple alpha beta gamma", encoding="utf-8")
+        (self.directory / "z.md").write_text("Maple", encoding="utf-8")
+        with patch("main.find_context", side_effect=lambda q, **kwargs: find_context(q, self.directory, **kwargs)):
+            with patch("main.generate_answer", return_value="answer") as generate:
+                result = main.ask_question(main.QuestionRequest(question="Maple alpha beta gamma"))
+        self.assertEqual(result["sources"], ["nested/a.md", "a.md"])
+        self.assertEqual(generate.call_args.args[2], "Maple alpha beta gamma\n\n---\n\nMaple alpha beta\n\n---\n\nMaple alpha")
 
 
 if __name__ == "__main__":

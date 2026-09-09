@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tech Knowledge Base</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="/static/app.js" defer></script>
+    <link rel="stylesheet" href="/static/style.css?v=source-block-2">
+    <script src="/static/app.js?v=source-block-2" defer></script>
   </head>
   <body>
     <main>
       <header>
-        <p class="version">v0.3 · Local Knowledge</p>
+        <p class="version">v0.4 · Source Display</p>
         <h1>Tech Knowledge Base</h1>
         <p>個人技術知識庫，從一個問題開始。</p>
       </header>
       <section aria-labelledby="question-heading">
         <h2 id="question-heading">你想了解什麼？</h2>
-        <p id="question-help">優先參考本地技術筆記，由本機 Ollama 回答你的問題。</p>
+        <p id="question-help">優先參考本地技術筆記，由本機 Ollama 回答你的問題，並在回答下方顯示內容來源。</p>
         <form id="question-form">
           <label for="model">選擇模型</label>
           <select id="model" name="model">
@@ -39,6 +39,10 @@
         <h2 id="answer-heading">回答</h2>
         <p id="answer-model"></p>
         <div id="answer"></div>
+        <div class="sources-block" role="region" aria-labelledby="sources-heading">
+          <h3 id="sources-heading">內容來源</h3>
+          <ul id="answer-sources"></ul>
+        </div>
       </section>
     </main>
   </body>
